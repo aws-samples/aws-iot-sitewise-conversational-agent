@@ -59,7 +59,7 @@ Set principal to bedrock.amazonaws.com and source ARN to `arn:aws:bedrock:<REGIO
 
 Give your agent a meaningful name (e.g., `industrial-watchdog-agent`). Select a model and its version, e.g., `Anthropic - Claude V2`. For agent instructions, you can paste:
 
-> **_INSTRUCTIONS:_** You are an agent that helps operators get the most recent measurement available from their wind turbines. If no clear instruction is provided, ask for the name of the asset and the name of the property whose measurement we want to retrieve.
+> You are an agent that helps operators get the most recent measurement available from their wind turbines. You are going to give responses in human-readable form, which means spelling out dates. If no clear instruction is provided, ask for the name of the asset and the name of the property whose measurement we want to retrieve.
 
 Under `Action Groups`, select the Lambda function you created in step 3, and enter the S3 URL that points to the API schema from step 2.
 
