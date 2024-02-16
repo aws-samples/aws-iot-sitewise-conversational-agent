@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Serverless application that invokes AWS IoT SiteWise
+
+Resources:
+  SiteWiseActionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.12
+      Timeout: 30
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - iotsitewise:ListAssetModelCompositeModels
+              - iotsitewise:ListActions
+              - iotsitewise:ListAssociatedAssets
+              - iotsitewise:DescribeAssetModelCompositeModel
+              - iotsitewise:ListAssets
+              - iotsitewise:GetInterpolatedAssetPropertyValues
+              - iotsitewise:BatchGetAssetPropertyValueHistory
+              - iotsitewise:GetAssetPropertyValue
+              - iotsitewise:ListAssetModelProperties
+              - iotsitewise:ExecuteQuery
+              - iotsitewise:DescribeAssetModel
+              - iotsitewise:DescribeAssetProperty
+              - iotsitewise:DescribeAsset
+              - iotsitewise:ListAssetProperties
+              - iotsitewise:ListAssetModels
+              - iotsitewise:DescribeAssetCompositeModel
+            Resource: "*"
+  
+  SiteWiseActionFunctionResourcePolicy:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref SiteWiseActionFunction
+      Action: lambda:InvokeFunctionUrl
+      Principal: bedrock.amazonaws.com
+      SourceArn: !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:agent/*"
+
+Outputs:
+  SiteWiseActionFunction:
+    Description: "IoT SiteWise Action Function ARN"
+    Value: !GetAtt SiteWiseActionFunction.Arn
