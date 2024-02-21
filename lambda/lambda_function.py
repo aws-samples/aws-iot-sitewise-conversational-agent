@@ -7,7 +7,9 @@ import os
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-sw_client = boto3.client("iotsitewise", region_name=os.environ.get('AWS_REGION'))
+sw_client = boto3.client(
+    "iotsitewise", region_name=os.environ.get('AWS_REGION'))
+
 
 def _get_named_parameter(event, name):
     """
@@ -21,17 +23,6 @@ def _get_named_parameter(event, name):
     return next(item for item in event['parameters'] if item['name'] == name)['value']
 
 
-def _get_named_property(event, name):
-    """
-    get the named property 'name' from the lambda event object
-    Args:        
-        event: lambda event
-        name: name of the named property to return
-    Returns:
-        named property value
-    """
-    return next(item for item in event['requestBody']['content']['application/json']['properties'] if item['name'] == name)['value']
-
 def _execute_sitewise_query(sw_client, query_statement, max_results=20):
     """
     Run a query using the IoT SiteWise SQL engine
@@ -43,7 +34,8 @@ def _execute_sitewise_query(sw_client, query_statement, max_results=20):
         dict with results from query
     """
     try:
-        result = sw_client.execute_query(queryStatement=query_statement, maxResults=max_results)
+        result = sw_client.execute_query(
+            queryStatement=query_statement, maxResults=max_results)
         logger.info('Query executed successfully')
         columns = [col['name'] for col in result['columns']]
         data = {}
@@ -64,23 +56,6 @@ def _execute_sitewise_query(sw_client, query_statement, max_results=20):
         return None
 
 
-def _get_asset_name(sw_client, asset_id):
-    """
-    get the asset name using the DescribeAsset API
-    Args:
-        sw_client: IoT SiteWise client
-        asset_id: asset id
-    Returns:
-        asset name
-    """
-    try:
-        asset_information = sw_client.describe_asset(assetId=asset_id)
-        asset_name = asset_information['assetName']
-        return model_name
-    except Exception as e:
-        logger.error(f"Error searching for {asset_id}: {e}")
-        raise
-
 def _get_asset_id(sw_client, asset_name, maxResults=1):
     """
     Retrieve an asset id by name.
@@ -89,17 +64,20 @@ def _get_asset_id(sw_client, asset_name, maxResults=1):
         asset_name: asset name
         maxResults: max number of query results to return
     Returns:
-        asset id
+        asset id or error msg
     Raises:
         ValueError: If the asset name does not exist or no asset id could be found for the given asset name.
     """
-    query_statement = f"SELECT asset_id, asset_name FROM asset WHERE asset_name = '{asset_name}'"
+    query_statement = f"SELECT asset_id, asset_name FROM asset WHERE asset_name = '{
+        asset_name}'"
     data = _execute_sitewise_query(sw_client, query_statement, maxResults)
-    if data and 'asset_id' in data and data['asset_id']:  # Check if 'asset_id' exists and is not empty
+    # Check if 'asset_id' exists and is not empty
+    if data and 'asset_id' in data and data['asset_id']:
         return data['asset_id'][0]
     else:
-        logger.error(f"Asset '{asset_name}' not found.")
-        raise ValueError(f"Asset '{asset_name}' not found.")
+        error_msg = f"No asset found with name '{asset_name}'"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
 
 
 def _get_model_name(sw_client, model_id):
@@ -112,12 +90,14 @@ def _get_model_name(sw_client, model_id):
         asset model name
     """
     try:
-        asset_model_information = sw_client.describe_asset_model(assetModelId=model_id)
+        asset_model_information = sw_client.describe_asset_model(
+            assetModelId=model_id)
         model_name = asset_model_information['assetModelName']
         return model_name
     except Exception as e:
         logger.error(f"Error searching for {model_id}: {e}")
         raise
+
 
 def _get_property_id(sw_client, asset_id, property_name, maxResults=20):
     """
@@ -130,12 +110,15 @@ def _get_property_id(sw_client, asset_id, property_name, maxResults=20):
     Returns:
         property id
     """
-    query_statement = f"SELECT asset_id, property_id, property_name FROM asset_property WHERE asset_id ='{asset_id}' AND property_name = '{property_name}'"
+    query_statement = f"SELECT asset_id, property_id, property_name FROM asset_property WHERE asset_id ='{
+        asset_id}' AND property_name = '{property_name}'"
     data = _execute_sitewise_query(sw_client, query_statement, maxResults)
     if data and 'property_id' in data:
         return data['property_id'][0]
     else:
-        raise ValueError(f"Property {property_name} for asset {asset_id} not found")
+        raise ValueError(f"Property {property_name} for asset {
+                         asset_id} not found")
+
 
 def _get_property_uom(sw_client, asset_id, property_id):
     """
@@ -148,9 +131,11 @@ def _get_property_uom(sw_client, asset_id, property_id):
         tuple with property name and unit (or 'N/A' if not defined)
     """
     try:
-        asset_property_information = sw_client.describe_asset_property(assetId=asset_id, propertyId=property_id)
+        asset_property_information = sw_client.describe_asset_property(
+            assetId=asset_id, propertyId=property_id)
         property_name = asset_property_information['assetProperty']['name']
-        property_unit = asset_property_information['assetProperty'].get('unit', '') #handle case where unit is not defined
+        property_unit = asset_property_information['assetProperty'].get(
+            'unit', '')  # handle case where unit is not defined
         return property_name, property_unit
     except Exception as e:
         logger.error(f"Error searching for property {property_id}: {e}")
@@ -169,16 +154,20 @@ def _get_latest_value(sw_client, asset_id, property_id, hoursdelta=-5, maxResult
     Returns:
         UNIX timestamp, latest value, unit
     """
-    query_statement = f"SELECT asset_id, property_id, event_timestamp, double_value, string_value FROM latest_value_time_series WHERE asset_id = '{asset_id}' AND property_id = '{property_id}'"
+    query_statement = f"SELECT asset_id, property_id, event_timestamp, double_value, string_value FROM latest_value_time_series WHERE asset_id = '{
+        asset_id}' AND property_id = '{property_id}'"
     _, unit = _get_property_uom(sw_client, asset_id, property_id)
     data = _execute_sitewise_query(sw_client, query_statement, maxResults)
     if data and 'event_timestamp' in data:
-        timestamp = int(int(data['event_timestamp'][0])*1.0e-9)  # convert ns to s
+        timestamp = int(int(data['event_timestamp'][0])
+                        * 1.0e-9)  # convert ns to s
         logger.info(f"Timestamp: {timestamp}")
         datetime_obj = datetime.datetime.utcfromtimestamp(timestamp)
-        eastern_tz = datetime.timezone(datetime.timedelta(hours=hoursdelta))  # Adjust for timezone, if necessary
-        dt_us_eastern = datetime_obj.astimezone(eastern_tz).strftime("%Y-%m-%d %H:%M:%S")
-        
+        eastern_tz = datetime.timezone(datetime.timedelta(
+            hours=hoursdelta))  # Adjust for timezone, if necessary
+        dt_us_eastern = datetime_obj.astimezone(
+            eastern_tz).strftime("%Y-%m-%d %H:%M:%S")
+
         # Handle both numeric and string values
         if 'double_value' in data and data['double_value'][0] is not None:
             measurement = round(float(data['double_value'][0]), 2)
@@ -186,16 +175,18 @@ def _get_latest_value(sw_client, asset_id, property_id, hoursdelta=-5, maxResult
             measurement = data['string_value'][0]
         else:
             measurement = 'N/A'  # Or some placeholder if no value is available
-        
-        logger.info(f"Latest measurement was {measurement} {unit} at {dt_us_eastern}")
+
+        logger.info(f"Latest measurement was {
+                    measurement} {unit} at {dt_us_eastern}")
         return dt_us_eastern, measurement, unit
     else:
-        raise ValueError(f"Latest value for property {property_id} on asset {asset_id} not found")
+        raise ValueError(f"Latest value for property {
+                         property_id} on asset {asset_id} not found")
 
 
 def get_latest_value(sw_client, asset_name, property_name, maxResults=1):
     """
-    get the latest value for the property of an asset
+    Get the latest value for the property of an asset.
     Args:
         sw_client: IoT SiteWise client
         asset_name: asset name
@@ -209,27 +200,31 @@ def get_latest_value(sw_client, asset_name, property_name, maxResults=1):
         asset_id = _get_asset_id(sw_client, asset_name)
     except ValueError as e:
         logger.error(f"Asset '{asset_name}' not found: {e}")
-        return {'error': f"Asset '{asset_name}' not found."}
+        raise ValueError(f"Asset '{asset_name}' not found.") from e
 
     try:
         property_id = _get_property_id(sw_client, asset_id, property_name)
     except ValueError as e:
-        logger.error(f"Property '{property_name}' not found for asset '{asset_name}': {e}")
-        return {'error': f"Property '{property_name}' not found for asset '{asset_name}'."}
+        logger.error(f"Property '{property_name}' not found for asset '{
+                     asset_name}': {e}")
+        raise ValueError(f"Property '{property_name}' not found for asset '{
+                         asset_name}'") from e
 
     try:
-        event_timestamp, latest_value, unit = _get_latest_value(sw_client, asset_id, property_id)
-        val_dict = {
+        event_timestamp, latest_value, unit = _get_latest_value(
+            sw_client, asset_id, property_id)
+        return {
             "assetId": asset_id,
             "propertyId": property_id,
             "eventTimestamp": event_timestamp,
             "latestValue": latest_value,
             "units": unit
         }
-        return val_dict
     except ValueError as e:
-        logger.error(f"Error retrieving latest value for property '{property_name}' on asset '{asset_name}': {e}")
-        return {'error': f"Error retrieving latest value for property '{property_name}' on asset '{asset_name}'."}
+        logger.error(f"Error retrieving latest value for property '{
+                     property_name}' on asset '{asset_name}': {e}")
+        raise ValueError(f"Error retrieving latest value for property '{
+                         property_name}' on asset '{asset_name}'") from e
 
 
 def list_asset_models(sw_client):
@@ -251,6 +246,7 @@ def list_asset_models(sw_client):
         logger.error(f"Error listing asset models: {e}")
         raise
 
+
 def list_assets_for_model(sw_client, model_id):
     """
     List all assets for a given asset model ID.
@@ -270,28 +266,6 @@ def list_assets_for_model(sw_client, model_id):
         logger.error(f"Error listing assets for model {model_id}: {e}")
         raise
 
-def list_all_assets(sw_client):
-    """
-    List all assets across all asset models.
-    Args:
-        sw_client: IoT SiteWise client
-    Returns:
-        list of dict containing model id, model name, asset id, asset name
-    """
-    try:
-        assets_by_model = []
-        model_summaries = list_asset_models(sw_client)
-        for model in model_summaries:
-            model_id = model['id']
-            model_name = _get_model_name(sw_client, model_id)
-            logger.info(f"Model name: '{model_name}'")
-            assets = list_assets_for_model(sw_client, model_id)
-            assets_by_model.extend([{'modelId': model_id, 'modelName': model_name, 'assetId': asset['id'], 'assetName': asset['name']} for asset in assets])
-        logger.info('All assets retrieved successfully')
-        return assets_by_model
-    except Exception as e:
-        logger.error(f"Error listing all assets: {e}")
-        raise
 
 def list_all_assets(sw_client):
     """
@@ -309,12 +283,14 @@ def list_all_assets(sw_client):
             model_name = _get_model_name(sw_client, model_id)
             logger.info(f"Model name: '{model_name}'")
             assets = list_assets_for_model(sw_client, model_id)
-            assets_by_model.extend([{'modelId': model_id, 'modelName': model_name, 'assetId': asset['id'], 'assetName': asset['name']} for asset in assets])
+            assets_by_model.extend([{'modelId': model_id, 'modelName': model_name,
+                                   'assetId': asset['id'], 'assetName': asset['name']} for asset in assets])
         logger.info('All assets retrieved successfully')
         return assets_by_model
     except Exception as e:
         logger.error(f"Error listing all assets: {e}")
         raise
+
 
 def list_properties_for_asset(sw_client, asset_name):
     """
@@ -329,62 +305,92 @@ def list_properties_for_asset(sw_client, asset_name):
     try:
         asset_details = sw_client.describe_asset(assetId=asset_id)
         properties_info = asset_details['assetProperties']
-        properties_list = [{'name': prop['name'], 'id': prop['id']} for prop in properties_info]
+        properties_list = [{'name': prop['name'], 'id': prop['id']}
+                           for prop in properties_info]
         return properties_list
     except Exception as e:
         logger.error(f"Error listing properties for asset {asset_name}: {e}")
         raise
 
+
+def format_response(action_group, api_path, http_method, http_status_code, body, content_type='application/json', session_attributes=None, prompt_session_attributes=None):
+    """
+    Formats the response according to the specified message format.
+
+    Args:
+        action_group (str): The action group of the response.
+        api_path (str): The API path requested.
+        http_method (str): The HTTP method used for the request.
+        http_status_code (int): The HTTP status code to return.
+        body (dict or str): The body of the response. If dict, will be converted to a JSON string.
+        content_type (str): The content type of the response body.
+        session_attributes (dict): Contains session attributes and their values.
+        prompt_session_attributes (dict): Contains prompt attributes and their values.
+
+    Returns:
+        dict: The formatted response.
+    """
+    if session_attributes is None:
+        session_attributes = {}
+    if prompt_session_attributes is None:
+        prompt_session_attributes = {}
+
+    # Convert JSON string if it's not already a string
+    if isinstance(body, dict):
+        body = json.dumps(body)
+
+    return {
+        'messageVersion': '1.0',
+        'response': {
+            'actionGroup': action_group,
+            'apiPath': api_path,
+            'httpMethod': http_method,
+            'httpStatusCode': http_status_code,
+            'responseBody': {
+                content_type: {'body': body}
+            },
+            'sessionAttributes': session_attributes,
+            'promptSessionAttributes': prompt_session_attributes
+        }
+    }
+
+
 def lambda_handler(event, context):
-    responses = []
     try:
         api_path = event['apiPath']
         logger.info(f'API Path: {api_path}')
-        
-        # Initialize the response body to an empty string
-        body = ""
-        
+
+        action_group = event.get('actionGroup', 'defaultGroup')
+        http_method = event.get('httpMethod', 'GET')
+
+        session_attributes = {}  # not implemented at this point
+        prompt_session_attributes = {}  # not implemented at this point
+
         if api_path == "/measurements/{AssetName}/{PropertyName}":
             asset_name = _get_named_parameter(event, "AssetName")
             property_name = _get_named_parameter(event, "PropertyName")
-            body = get_latest_value(sw_client, asset_name, property_name)
-        
+            try:
+                body = get_latest_value(sw_client, asset_name, property_name)
+                return format_response(action_group, api_path, http_method, 200, body, session_attributes=session_attributes, prompt_session_attributes=prompt_session_attributes)
+            except ValueError as e:
+                return format_response(action_group, api_path, http_method, 404, {'error': str(e)}, session_attributes=session_attributes, prompt_session_attributes=prompt_session_attributes)
+
         elif api_path == "/assets/all":
             body = list_all_assets(sw_client)
-        
+            return format_response(action_group, api_path, http_method, 200, body, session_attributes=session_attributes, prompt_session_attributes=prompt_session_attributes)
+
         elif api_path == "/assets/{AssetName}/properties":
             asset_name = _get_named_parameter(event, "AssetName")
-            body = list_properties_for_asset(sw_client, asset_name)
-        
+            try:
+                body = list_properties_for_asset(sw_client, asset_name)
+                return format_response(action_group, api_path, http_method, 200, body, session_attributes=session_attributes, prompt_session_attributes=prompt_session_attributes)
+            except ValueError as e:
+                return format_response(action_group, api_path, http_method, 404, {'error': str(e)}, session_attributes=session_attributes, prompt_session_attributes=prompt_session_attributes)
+
         else:
-            body = {f"{api_path} is not a valid API path, try another one."}
-        
-        response_body = {
-            'application/json': {
-                'body': json.dumps(body)
-            }
-        }
-        
-        action_response = {
-            'actionGroup': event.get('actionGroup', 'defaultGroup'),
-            'apiPath': api_path,
-            'httpMethod': event.get('httpMethod', 'GET'),
-            'httpStatusCode': 200,
-            'responseBody': response_body
-        }
-        
-        responses.append(action_response)
-        
-        api_response = {
-            'messageVersion': '1.0',
-            'response': action_response
-        }
-        
-        return api_response
+            body = f"{api_path} is not a valid API path, try another one."
+            return format_response(action_group, api_path, http_method, 400, {'error': body}, session_attributes=session_attributes, prompt_session_attributes=prompt_session_attributes)
 
     except Exception as e:
         logger.error(f"Error processing request: {e}", exc_info=True)
-        return {
-            'statusCode': 500,
-            'body': json.dumps({'error': 'An error occurred processing your request.'})
-        }
+        return format_response('errorGroup', api_path, 'ERROR', 500, {'error': 'An error occurred processing your request.'}, session_attributes=session_attributes, prompt_session_attributes=prompt_session_attributes)
