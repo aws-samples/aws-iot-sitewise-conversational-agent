@@ -66,6 +66,25 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Asset or Property not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message detailing why the asset or the property was not found."
+                    }
+                  },
+                  "example": {
+                    "error": "Asset 'Demo Turbine Asset 1234' not found."
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -111,7 +130,23 @@
             }
           },
           "404": {
-            "description": "Asset not found"
+            "description": "Asset not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message detailing why the asset was not found."
+                    }
+                  },
+                  "example": {
+                    "error": "No asset found with name 'Demo Turbine Asset 111'"
+                  }
+                }
+              }
+            }
           }
         }
       }
