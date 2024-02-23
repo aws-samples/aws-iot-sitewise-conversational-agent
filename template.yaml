@@ -37,7 +37,7 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref SiteWiseActionFunction
-      Action: lambda:InvokeFunctionUrl
+      Action: lambda:InvokeFunction
       Principal: bedrock.amazonaws.com
       SourceArn: !Sub "arn:aws:bedrock:${AWS::Region}:${AWS::AccountId}:agent/*"
 
