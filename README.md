@@ -26,20 +26,20 @@ The architecture of the conversational agent is shown below. This repository con
 
 2. _Lambda function_: Create a Lambda function to define the action group that the agent will use. This function will need a recent version of the boto3 library to be able to call the ExecuteQuery API in SiteWise.
 
-You have two options to create the Lambda function:
+    You have two options to create the Lambda function:
 
-- **Manually**: Create a Lambda function to define the action group that the Bedrock agent will use. This function will need a version greater or equal than 1.34 for boto3. You can follow [these instructions](https://docs.aws.amazon.com/lambda/latest/dg/creating-deleting-layers.html) to build a Lambda layer with a more modern version of boto3 to allow the agent to work. **Continue to step 4.**
+   - **Manually**: Create a Lambda function to define the action group that the Bedrock agent will use. This function will need a version greater or equal than 1.34 for boto3. You can follow [these instructions](https://docs.aws.amazon.com/lambda/latest/dg/creating-deleting-layers.html) to build a Lambda layer with a more modern version of boto3 to allow the agent to work. **Continue to step 4.**
 
-- **Using Serverless Application Model (SAM)**: SAM will automatically deploy the Lambda function and its dependencies as a container. This repository includes the definition of the Lambda function and the role in the `template.yaml` file. To build and deploy, run the following commands on your terminal. See [Using the AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/using-sam-cli.html) for detailed information on using the `AWS SAM CLI`.
+   - **Using Serverless Application Model (SAM)**: SAM will automatically deploy the Lambda function and its dependencies as a container. This repository includes the definition of the Lambda function and the role in the `template.yaml` file. To build and deploy, run the following commands on your terminal. See [Using the AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/using-sam-cli.html) for detailed information on using the `AWS SAM CLI`.
 
-    ```bash
-    sam build --use-container
-    sam deploy --guided
-    ```
+       ```bash
+       sam build --use-container
+       sam deploy --guided
+       ```
 
     **Continue to step 5.**
 
-4. _Permissions_: Edit the Lambda configuration to change `Permissions` and give it access to query from IoT SiteWise. Click on the Execution Role to edit permissions for that role using AWS IAM.
+3. _Permissions_: Edit the Lambda configuration to change `Permissions` and give it access to query from IoT SiteWise. Click on the Execution Role to edit permissions for that role using AWS IAM.
 
     ![Lambda role](figs/lambda-role.png)
 
@@ -55,7 +55,7 @@ You have two options to create the Lambda function:
 
     Set principal to bedrock.amazonaws.com and source ARN to `arn:aws:bedrock:<REGION>:<ACCOUNT_NUMBER>:agent/*` and click on `Save` to continue. See [Resource\-based policy to allow Amazon Bedrock to invoke an action group Lambda function](https://docs.aws.amazon.com/bedrock/latest/userguide/agents-permissions.html#agents-permissions-lambda) for details and best practices.
 
-5. _Conversational agent_: To build the agent, go to the Amazon Bedrock console and click on `Agents` under `Orchestration`. Click on `Create Agent`.
+4. _Conversational agent_: To build the agent, go to the Amazon Bedrock console and click on `Agents` under `Orchestration`. Click on `Create Agent`.
 
     Give your agent a meaningful name (e.g., `industrial-watchdog-agent`). Select a model and its version, e.g., `Anthropic - Claude V2`. For agent instructions, you can paste:
 
@@ -65,7 +65,7 @@ You have two options to create the Lambda function:
 
     Go to `Review and create`.
 
-6. _Testing_: Ask questions about the current status of your assets. If you used the SiteWise demo to deploy assets, you can ask:
+5. _Testing_: Ask questions about the current status of your assets. If you used the SiteWise demo to deploy assets, you can ask:
 
 - What assets are available?
 - What is the RPM in turbine 1?
