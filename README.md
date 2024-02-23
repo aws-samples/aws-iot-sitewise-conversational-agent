@@ -22,9 +22,9 @@ The architecture of the conversational agent is shown below. This repository con
 
     ![Launch IoT SiteWise demo](figs/launch-sitewise-demo.png)
 
-1. _OpenAPI specification_: Upload the `openapischema/iot_sitewise_agent_openapi_schema.json` file to S3; note the bucket and path. We are going to need this later.
+2. _OpenAPI specification_: Upload the `openapischema/iot_sitewise_agent_openapi_schema.json` file to S3; note the bucket and path. We are going to need this later.
 
-2. _Lambda function_: Create a Lambda function to define the action group that the agent will use. This function will need a recent version of the boto3 library to be able to call the ExecuteQuery API in SiteWise.
+3. _Lambda function_: Create a Lambda function to define the action group that the agent will use. This function will need a recent version of the boto3 library to be able to call the ExecuteQuery API in SiteWise.
 
     You have two options to create the Lambda function:
 
@@ -39,7 +39,7 @@ The architecture of the conversational agent is shown below. This repository con
 
     **Continue to step 5.**
 
-3. _Permissions_: Edit the Lambda configuration to change `Permissions` and give it access to query from IoT SiteWise. Click on the Execution Role to edit permissions for that role using AWS IAM.
+4. _Permissions_: Edit the Lambda configuration to change `Permissions` and give it access to query from IoT SiteWise. Click on the Execution Role to edit permissions for that role using AWS IAM.
 
     ![Lambda role](figs/lambda-role.png)
 
@@ -55,7 +55,7 @@ The architecture of the conversational agent is shown below. This repository con
 
     Set principal to bedrock.amazonaws.com and source ARN to `arn:aws:bedrock:<REGION>:<ACCOUNT_NUMBER>:agent/*` and click on `Save` to continue. See [Resource\-based policy to allow Amazon Bedrock to invoke an action group Lambda function](https://docs.aws.amazon.com/bedrock/latest/userguide/agents-permissions.html#agents-permissions-lambda) for details and best practices.
 
-4. _Conversational agent_: To build the agent, go to the Amazon Bedrock console and click on `Agents` under `Orchestration`. Click on `Create Agent`.
+5. _Conversational agent_: To build the agent, go to the Amazon Bedrock console and click on `Agents` under `Orchestration`. Click on `Create Agent`.
 
     Give your agent a meaningful name (e.g., `industrial-watchdog-agent`). Select a model and its version, e.g., `Anthropic - Claude V2`. For agent instructions, you can paste:
 
@@ -65,7 +65,7 @@ The architecture of the conversational agent is shown below. This repository con
 
     Go to `Review and create`.
 
-5. _Testing_: Ask questions about the current status of your assets. If you used the SiteWise demo to deploy assets, you can ask:
+6. _Testing_: Ask questions about the current status of your assets. If you used the SiteWise demo to deploy assets, you can ask:
 
 - What assets are available?
 - What is the RPM in turbine 1?
