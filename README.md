@@ -14,7 +14,9 @@ The architecture of the conversational agent is shown below. This repository con
 
 ## Deployment
 
-> **_PRE-REQUISITES:_** This agent uses the SiteWise SQL engine, which requires that AWS IoT SiteWise and AWS IoT TwinMaker are integrated. Please follow [these steps](https://docs.aws.amazon.com/iot-sitewise/latest/userguide/integrate-tm.html) before deploying the agent.
+> **_AWS IOT SITEWISE PRE-REQUISITES:_** This agent uses the SiteWise SQL engine, which requires that AWS IoT SiteWise and AWS IoT TwinMaker are integrated. Please follow [these steps](https://docs.aws.amazon.com/iot-sitewise/latest/userguide/integrate-tm.html) before deploying the agent.
+
+> **_AWS AMAZON BEDROCK PRE-REQUISITES:_** Agents for Amazon Bedrock is currently supported only in the us-east-1 and us-west-2 regions, and for Anthropic models. Enable access to the model you intend to use (e.g., `Anthropic Claude v2.0`) in the region where your agent will be deployed by agreeing to the End User License Agreement in the [Amazon Bedrock console](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html).
 
 ### Deployment steps
 
