@@ -1,0 +1,195 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Industrial Watchdog Bot API",
+    "version": "1.0.0",
+    "description": "Industrial monitoring API for an energy company that runs wind turbines"
+  },
+  "paths": {
+    "/measurements/{AssetName}/{PropertyName}": {
+      "get": {
+        "summary": "Get the latest measurement",
+        "description": "Based on provided asset name and property name, return the latest measurement available",
+        "operationId": "getLatestMeasurement",
+        "parameters": [
+          {
+            "name": "AssetName",
+            "in": "path",
+            "description": "Asset Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "PropertyName",
+            "in": "path",
+            "description": "Property Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get latest measurement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "assetId": {
+                        "type": "string",
+                        "description": "This is the Asset ID"
+                      },
+                      "propertyId": {
+                        "type": "string",
+                        "description": "This is the Property ID"
+                      },
+                      "timestamp": {
+                        "type": "string",
+                        "description": "This is the time at which the latest measurement was recorded"
+                      },
+                      "latestValue": {
+                        "type": "number",
+                        "description": "This is the latest measurement"
+                      },
+                      "units": {
+                        "type": "string",
+                        "description": "This is the unit of measure that correspond to the latest measurement"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Asset or Property not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message detailing why the asset or the property was not found."
+                    }
+                  },
+                  "example": {
+                    "error": "Asset 'Demo Turbine Asset 1234' not found."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/assets/{AssetName}/properties": {
+      "get": {
+        "summary": "List properties of an asset",
+        "description": "Retrieves a list of properties for the specified asset by its name. This includes property names and IDs.",
+        "operationId": "listAssetProperties",
+        "parameters": [
+          {
+            "name": "AssetName",
+            "in": "path",
+            "description": "The name of the asset for which to list properties.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of properties for the specified asset",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "The name of the property."
+                      },
+                      "id": {
+                        "type": "string",
+                        "description": "The unique identifier of the property."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Asset not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message detailing why the asset was not found."
+                    }
+                  },
+                  "example": {
+                    "error": "No asset found with name 'Demo Turbine Asset 111'"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/assets/all": {
+      "get": {
+        "summary": "List all assets",
+        "description": "Retrieves a comprehensive list of all assets managed within the system, organized by asset model.",
+        "operationId": "listAllAssets",
+        "responses": {
+          "200": {
+            "description": "A comprehensive list of all assets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "modelId": {
+                        "type": "string",
+                        "description": "The unique identifier of the asset model."
+                      },
+                      "modelName": {
+                        "type": "string",
+                        "description": "The name of the asset model."
+                      },
+                      "assetId": {
+                        "type": "string",
+                        "description": "The unique identifier of the asset."
+                      },
+                      "assetName": {
+                        "type": "string",
+                        "description": "The name of the asset."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
