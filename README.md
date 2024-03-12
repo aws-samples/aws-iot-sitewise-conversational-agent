@@ -71,10 +71,13 @@ The architecture of the conversational agent is shown below. This repository con
 
 - What assets are available?
 - What is the RPM in turbine 1?
+- What is the average RotationsPerMinute of Demo Turbine Asset 1 aggregated by hour?
+
 
     > Note that even if you ask for an asset or a property not using the exact property or asset name stored in SiteWise, it can still reason and retrieve the value.
 
     ![Sample questions](figs/sample-questions.png)
+    ![Sample questions](figs/aggregate-sample-question.png)
 
 ## Security
 
