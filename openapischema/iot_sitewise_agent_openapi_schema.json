@@ -147,15 +147,15 @@
                       },
                       "avgValue": {
                         "type": "number",
-                        "description": "This is the average measurement"
+                        "description": "This is the average value for the property over the aggregation window"
                       },
                       "maxValue": {
                         "type": "number",
-                        "description": "This is the maximum measurement"
+                        "description": "This is the maximum value for the property over the aggregation window"
                       },
                       "minValue": {
                         "type": "number",
-                        "description": "This is the minimum measurement"
+                        "description": "This is the minimum value for the property over the aggregation window"
                       },
                       "units": {
                         "type": "string",
