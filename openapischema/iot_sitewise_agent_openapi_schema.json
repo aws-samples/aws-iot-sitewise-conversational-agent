@@ -89,6 +89,110 @@
         }
       }
     },
+    "/measurements/{AssetName}/{PropertyName}/aggregate": {
+      "get": {
+        "summary": "Get the aggregated measurement",
+        "description": "Based on provided asset name and property name, return the aggregate (average, maximum, minimum) measurement available",
+        "operationId": "getAggregatedMeasurement",
+        "parameters": [
+          {
+            "name": "AssetName",
+            "in": "path",
+            "description": "Asset Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "PropertyName",
+            "in": "path",
+            "description": "Property Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resolution",
+            "in": "query",
+            "description": "The resolution for aggregation of the data. This can be by 1 minute, 15 minute, 1 hour or 1 day. Values allowed are 1d, 1h, 15m or 1m. Example - 1h for hour, 1d for days and 1m for minutes.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get aggregate measurement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "assetId": {
+                        "type": "string",
+                        "description": "This is the Asset ID"
+                      },
+                      "propertyId": {
+                        "type": "string",
+                        "description": "This is the Property ID"
+                      },
+                      "timestamp": {
+                        "type": "string",
+                        "description": "This is the time at which the aggregation was calculated"
+                      },
+                      "avgValue": {
+                        "type": "number",
+                        "description": "This is the average measurement"
+                      },
+                      "maxValue": {
+                        "type": "number",
+                        "description": "This is the maximum measurement"
+                      },
+                      "minValue": {
+                        "type": "number",
+                        "description": "This is the minimum measurement"
+                      },
+                      "units": {
+                        "type": "string",
+                        "description": "This is the unit of measure that correspond to the measurement"
+                      },
+                      "resolution": {
+                        "type": "string",
+                        "description": "This is the resolution at which the aggregation was done"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Asset or Property not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message detailing why the asset or the property was not found."
+                    }
+                  },
+                  "example": {
+                    "error": "Asset 'Demo Turbine Asset 1234' not found."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/assets/{AssetName}/properties": {
       "get": {
         "summary": "List properties of an asset",
