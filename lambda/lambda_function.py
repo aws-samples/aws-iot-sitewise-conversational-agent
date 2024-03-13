@@ -35,11 +35,9 @@ def _execute_sitewise_query(sw_client, query_statement, max_results=20):
         dict with results from query
     """
     try:
-        #print(query_statement)
         result = sw_client.execute_query(
             queryStatement=query_statement, maxResults=max_results)
         logger.info('Query executed successfully')
-        #print(result)
         columns = [col['name'] for col in result['columns']]
         data = {}
         for index, col in enumerate(columns):
@@ -164,7 +162,6 @@ def _get_latest_value(sw_client, asset_id, property_id, hoursdelta=-5, maxResult
         asset_id}' AND property_id = '{property_id}'"
     _, unit = _get_property_uom(sw_client, asset_id, property_id)
     data = _execute_sitewise_query(sw_client, query_statement, maxResults)
-    #print(data)
     if data and 'event_timestamp' in data:
         timestamp = int(int(data['event_timestamp'][0])
                         * 1.0e-9)  # convert ns to s
@@ -209,7 +206,6 @@ def _get_aggregated_value(sw_client, asset_id, property_id, resolution, hoursdel
         asset_id}' AND property_id = '{property_id}' AND resolution = '{resolution_val}' AND event_timestamp > {timestamp_2_days}"
     _, unit = _get_property_uom(sw_client, asset_id, property_id)
     data = _execute_sitewise_query(sw_client, query_statement, maxResults)
-    #print(data)
     if data and 'event_timestamp' in data:
 
         timestamp = int(data['event_timestamp'][0])
@@ -277,15 +273,6 @@ def get_aggregated_value(sw_client, asset_name, property_name, resolution, maxRe
                          asset_name}'") from e
 
     try:
-        if resolution not in ['1m', '15m', '1h', '1d']:
-            if 'm' in resolution and len(resolution) == 2:
-                resolution = '1m'
-            elif 'm' in resolution:
-                resolution = '15m'
-            elif 'd' in resolution:
-                resolution = '1d'
-            else:
-                resolution = '1h'
         event_timestamp, unit, avg_value, max_value, min_value = _get_aggregated_value(
             sw_client, asset_id, property_id, resolution)
         return {
@@ -508,6 +495,9 @@ def lambda_handler(event, context):
             property_name = _get_named_parameter(event, "PropertyName")
             resolution = _get_named_parameter(event, "resolution")
             try:
+                if resolution not in ['1m', '15m', '1h', '1d']:
+                    return format_response(action_group, api_path, http_method, 400, {'error': f"Unsupported resolution for aggregation {resolution}"}, 
+                                           session_attributes=session_attributes, prompt_session_attributes=prompt_session_attributes)
                 body = get_aggregated_value(sw_client, asset_name, property_name, resolution)
                 return format_response(action_group, api_path, http_method, 200, body, session_attributes=session_attributes, prompt_session_attributes=prompt_session_attributes)
             except ValueError as e:
