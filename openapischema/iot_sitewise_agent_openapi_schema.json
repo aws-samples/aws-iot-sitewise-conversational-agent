@@ -116,10 +116,11 @@
           {
             "name": "resolution",
             "in": "query",
-            "description": "The resolution for aggregation of the data. This can be by 1 minute, 15 minute, 1 hour or 1 day. Values allowed are 1d, 1h, 15m or 1m. Example - 1h for hour, 1d for days and 1m for minutes.",
+            "description": "The resolution for aggregation of the data. This can only be by 1 minute, 15 minute, 1 hour or 1 day. The value must be one of 1m, 15m, 1h and 1d. Example - 1h for hour, 1d for days and 1m for minutes. This is an enum with possible values of 1d, 1h, 15m, 1m.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": ["1m","15m","1h", "1d"]
             }
           }
         ],
@@ -185,6 +186,25 @@
                   },
                   "example": {
                     "error": "Asset 'Demo Turbine Asset 1234' not found."
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unsupported resolution for aggregation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "The resolution provided is not valid. Accepted resolution values are 1m, 15m, 1h and 1d."
+                    }
+                  },
+                  "example": {
+                    "error": "Unsupported resolution for aggregation. Accepted resolution values are 1m, 15m, 1h and 1d."
                   }
                 }
               }
