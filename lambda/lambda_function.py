@@ -2,7 +2,9 @@ import json
 import boto3
 import logging
 import datetime
+import time
 import os
+import pytz
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -142,7 +144,7 @@ def _get_property_uom(sw_client, asset_id, property_id):
         raise
 
 
-def _get_latest_value(sw_client, asset_id, property_id, hoursdelta=-5, maxResults=1):
+def _get_latest_value(sw_client, asset_id, property_id, maxResults=1):
     """
     Execute a SQL query to get the latest value of <property_id> in <asset_id>
     Args:
@@ -162,11 +164,10 @@ def _get_latest_value(sw_client, asset_id, property_id, hoursdelta=-5, maxResult
         timestamp = int(int(data['event_timestamp'][0])
                         * 1.0e-9)  # convert ns to s
         logger.info(f"Timestamp: {timestamp}")
-        datetime_obj = datetime.datetime.utcfromtimestamp(timestamp)
-        eastern_tz = datetime.timezone(datetime.timedelta(
-            hours=hoursdelta))  # Adjust for timezone, if necessary
-        dt_us_eastern = datetime_obj.astimezone(
-            eastern_tz).strftime("%Y-%m-%d %H:%M:%S")
+        # Adjust for timezone, if necessary
+        eastern_tz = datetime.datetime.fromtimestamp(timestamp,
+                                                     tz=pytz.timezone('US/Eastern'))
+        dt_us_eastern = eastern_tz.strftime("%Y-%m-%d %H:%M:%S")
 
         # Handle both numeric and string values
         if 'double_value' in data and data['double_value'][0] is not None:
@@ -182,6 +183,104 @@ def _get_latest_value(sw_client, asset_id, property_id, hoursdelta=-5, maxResult
     else:
         raise ValueError(f"Latest value for property {
                          property_id} on asset {asset_id} not found")
+
+
+def _get_aggregated_value(sw_client, asset_id, property_id, resolution, maxResults=1):
+    """
+    Execute a SQL query to get the aggregated values of <property_id> in <asset_id>
+    Args:
+        sw_client: IoT SiteWise client
+        asset_id: asset id
+        property_id: property id
+        hoursdelta: difference in hours with respect to UTC time
+        maxResults: max number of query results to return
+    Returns:
+        UNIX timestamp, unit, avg value, max value, min value
+    """
+    timestamp_2_days = int(time.time()) - 48*60*60
+    resolution_val = resolution
+    query_statement = f"SELECT asset_id, property_id, event_timestamp, average_value, maximum_value, minimum_value FROM precomputed_aggregates WHERE asset_id = '{
+        asset_id}' AND property_id = '{property_id}' AND resolution = '{resolution_val}' AND event_timestamp > {timestamp_2_days}"
+    _, unit = _get_property_uom(sw_client, asset_id, property_id)
+    data = _execute_sitewise_query(sw_client, query_statement, maxResults)
+    if data and 'event_timestamp' in data:
+        timestamp = int(data['event_timestamp'][0])
+        logger.info(f"Timestamp: {timestamp}")
+        eastern_tz = datetime.datetime.fromtimestamp(timestamp,
+                                                     tz=pytz.timezone('US/Eastern'))
+        dt_us_eastern = eastern_tz.strftime("%Y-%m-%d %H:%M:%S")
+
+        # Handle both numeric and string values
+        if 'average_value' in data and data['average_value'][0] is not None:
+            avg_measurement = round(float(data['average_value'][0]), 2)
+        else:
+            avg_measurement = 'N/A'  # Or some placeholder if no value is available
+        if 'maximum_value' in data and data['maximum_value'][0] is not None:
+            max_measurement = round(float(data['maximum_value'][0]), 2)
+        else:
+            max_measurement = 'N/A'  # Or some placeholder if no value is available
+        if 'minimum_value' in data and data['minimum_value'][0] is not None:
+            min_measurement = round(float(data['minimum_value'][0]), 2)
+        else:
+            min_measurement = 'N/A'  # Or some placeholder if no value is available
+
+        logger.info(f"Avg measurement was {
+                    avg_measurement} {unit} at {dt_us_eastern}")
+        logger.info(f"Max measurement was {
+                    max_measurement} {unit} at {dt_us_eastern}")
+        logger.info(f"Min measurement was {
+                    min_measurement} {unit} at {dt_us_eastern}")
+
+        return dt_us_eastern, unit, avg_measurement, max_measurement, min_measurement
+    else:
+        raise ValueError(f"Avg, max and min values for property {
+                         property_id} on asset {asset_id} not found")
+
+
+def get_aggregated_value(sw_client, asset_name, property_name, resolution):
+    """
+    Get the aggregated value for the property of an asset.
+    Args:
+        sw_client: IoT SiteWise client
+        asset_name: asset name
+        property_name: property name
+    Returns:
+        asset id, property id, avg value, max value, min value
+    Raises:
+        ValueError: If asset or property does not exist.
+    """
+    try:
+        asset_id = _get_asset_id(sw_client, asset_name)
+    except ValueError as e:
+        logger.error(f"Asset '{asset_name}' not found: {e}")
+        raise ValueError(f"Asset '{asset_name}' not found.") from e
+
+    try:
+        property_id = _get_property_id(sw_client, asset_id, property_name)
+    except ValueError as e:
+        logger.error(f"Property '{property_name}' not found for asset '{
+                     asset_name}': {e}")
+        raise ValueError(f"Property '{property_name}' not found for asset '{
+                         asset_name}'") from e
+
+    try:
+        event_timestamp, unit, avg_value, max_value, min_value = _get_aggregated_value(
+            sw_client, asset_id, property_id, resolution)
+        return {
+            "assetId": asset_id,
+            "propertyId": property_id,
+            "eventTimestamp": event_timestamp,
+            "avgValue": avg_value,
+            "maxValue": max_value,
+            "minValue": min_value,
+            "units": unit,
+            "resolution": resolution
+        }
+    except ValueError as e:
+        logger.error(f"Error retrieving aggregated value for property '{
+                     property_name}' on asset '{asset_name}': {e}")
+        raise ValueError(f"Error retrieving aggregated value for property '{
+                         property_name}' on asset '{asset_name}'") from e
 
 
 def get_latest_value(sw_client, asset_name, property_name, maxResults=1):
@@ -256,6 +355,7 @@ def list_assets_for_model(sw_client, model_id):
     Returns:
         List of asset summaries
     """
+
     try:
         paginator = sw_client.get_paginator('list_assets')
         asset_summaries = []
@@ -356,6 +456,7 @@ def format_response(action_group, api_path, http_method, http_status_code, body,
 
 
 def lambda_handler(event, context):
+    print(event)
     try:
         api_path = event['apiPath']
         logger.info(f'API Path: {api_path}')
@@ -371,6 +472,19 @@ def lambda_handler(event, context):
             property_name = _get_named_parameter(event, "PropertyName")
             try:
                 body = get_latest_value(sw_client, asset_name, property_name)
+                return format_response(action_group, api_path, http_method, 200, body, session_attributes=session_attributes, prompt_session_attributes=prompt_session_attributes)
+            except ValueError as e:
+                return format_response(action_group, api_path, http_method, 404, {'error': str(e)}, session_attributes=session_attributes, prompt_session_attributes=prompt_session_attributes)
+
+        elif api_path == "/measurements/{AssetName}/{PropertyName}/aggregate":
+            asset_name = _get_named_parameter(event, "AssetName")
+            property_name = _get_named_parameter(event, "PropertyName")
+            resolution = _get_named_parameter(event, "Resolution")
+            try:
+                if resolution not in ['1m', '15m', '1h', '1d']:
+                    return format_response(action_group, api_path, http_method, 400, {'error': f"Unsupported resolution for aggregation {resolution}"}, 
+                                           session_attributes=session_attributes, prompt_session_attributes=prompt_session_attributes)
+                body = get_aggregated_value(sw_client, asset_name, property_name, resolution)
                 return format_response(action_group, api_path, http_method, 200, body, session_attributes=session_attributes, prompt_session_attributes=prompt_session_attributes)
             except ValueError as e:
                 return format_response(action_group, api_path, http_method, 404, {'error': str(e)}, session_attributes=session_attributes, prompt_session_attributes=prompt_session_attributes)

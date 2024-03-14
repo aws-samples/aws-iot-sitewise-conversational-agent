@@ -59,7 +59,7 @@ The architecture of the conversational agent is shown below. This repository con
 
 5. _Conversational agent_: To build the agent, go to the Amazon Bedrock console and click on `Agents` under `Orchestration`. Click on `Create Agent`.
 
-    Give your agent a meaningful name (e.g., `industrial-watchdog-agent`). Select a model and its version, e.g., `Anthropic - Claude V2`. For agent instructions, you can paste:
+    Give your agent a meaningful name (e.g., `industrial-watchdog-agent`). Select a model and its version, e.g., `Anthropic - Claude Instant V1`. For agent instructions, you can paste:
 
     > You are an agent that helps operators get the most recent measurement available from their wind turbines. You are going to give responses in human-readable form, which means spelling out dates. If no clear instruction is provided, ask for the name of the asset and the name of the property whose measurement we want to retrieve.
 
@@ -70,7 +70,9 @@ The architecture of the conversational agent is shown below. This repository con
 6. _Testing_: Ask questions about the current status of your assets. If you used the SiteWise demo to deploy assets, you can ask:
 
 - What assets are available?
-- What is the RPM in turbine 1?
+- What is the latest value of RotationsPerMinute in turbine 1?
+- What is the average RotationsPerMinute of Demo Turbine Asset 1 aggregated by hour?
+
 
     > Note that even if you ask for an asset or a property not using the exact property or asset name stored in SiteWise, it can still reason and retrieve the value.
 
