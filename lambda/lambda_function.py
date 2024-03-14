@@ -144,7 +144,7 @@ def _get_property_uom(sw_client, asset_id, property_id):
         raise
 
 
-def _get_latest_value(sw_client, asset_id, property_id, hoursdelta=-5, maxResults=1):
+def _get_latest_value(sw_client, asset_id, property_id, maxResults=1):
     """
     Execute a SQL query to get the latest value of <property_id> in <asset_id>
     Args:
@@ -185,7 +185,7 @@ def _get_latest_value(sw_client, asset_id, property_id, hoursdelta=-5, maxResult
                          property_id} on asset {asset_id} not found")
 
 
-def _get_aggregated_value(sw_client, asset_id, property_id, resolution, hoursdelta=-5, maxResults=1):
+def _get_aggregated_value(sw_client, asset_id, property_id, resolution, maxResults=1):
     """
     Execute a SQL query to get the aggregated values of <property_id> in <asset_id>
     Args:
@@ -237,7 +237,7 @@ def _get_aggregated_value(sw_client, asset_id, property_id, resolution, hoursdel
                          property_id} on asset {asset_id} not found")
 
 
-def get_aggregated_value(sw_client, asset_name, property_name, resolution, maxResults=1):
+def get_aggregated_value(sw_client, asset_name, property_name, resolution):
     """
     Get the aggregated value for the property of an asset.
     Args:
