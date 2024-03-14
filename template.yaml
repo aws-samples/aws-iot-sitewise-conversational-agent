@@ -7,6 +7,7 @@ Resources:
   SiteWiseActionFunction:
     Type: AWS::Serverless::Function
     Properties:
+      Description: Lambda function that defines the Bedrock action group that invokes AWS IoT SiteWise
       CodeUri: lambda/
       Handler: lambda_function.lambda_handler
       Runtime: python3.12

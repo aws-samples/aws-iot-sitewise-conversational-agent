@@ -4,6 +4,7 @@ import logging
 import datetime
 import time
 import os
+import pytz
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -69,7 +70,6 @@ def _get_asset_id(sw_client, asset_name, maxResults=1):
     Raises:
         ValueError: If the asset name does not exist or no asset id could be found for the given asset name.
     """
-
     query_statement = f"SELECT asset_id, asset_name FROM asset WHERE asset_name = '{
         asset_name}'"
     data = _execute_sitewise_query(sw_client, query_statement, maxResults)
@@ -92,7 +92,6 @@ def _get_model_name(sw_client, model_id):
         asset model name
     """
     try:
-
         asset_model_information = sw_client.describe_asset_model(
             assetModelId=model_id)
         model_name = asset_model_information['assetModelName']
@@ -157,7 +156,6 @@ def _get_latest_value(sw_client, asset_id, property_id, hoursdelta=-5, maxResult
     Returns:
         UNIX timestamp, latest value, unit
     """
-
     query_statement = f"SELECT asset_id, property_id, event_timestamp, double_value, string_value FROM latest_value_time_series WHERE asset_id = '{
         asset_id}' AND property_id = '{property_id}'"
     _, unit = _get_property_uom(sw_client, asset_id, property_id)
@@ -166,11 +164,10 @@ def _get_latest_value(sw_client, asset_id, property_id, hoursdelta=-5, maxResult
         timestamp = int(int(data['event_timestamp'][0])
                         * 1.0e-9)  # convert ns to s
         logger.info(f"Timestamp: {timestamp}")
-        datetime_obj = datetime.datetime.utcfromtimestamp(timestamp)
-        eastern_tz = datetime.timezone(datetime.timedelta(
-            hours=hoursdelta))  # Adjust for timezone, if necessary
-        dt_us_eastern = datetime_obj.astimezone(
-            eastern_tz).strftime("%Y-%m-%d %H:%M:%S")
+        # Adjust for timezone, if necessary
+        eastern_tz = datetime.datetime.fromtimestamp(timestamp,
+                                                     tz=pytz.timezone('US/Eastern'))
+        dt_us_eastern = eastern_tz.strftime("%Y-%m-%d %H:%M:%S")
 
         # Handle both numeric and string values
         if 'double_value' in data and data['double_value'][0] is not None:
@@ -207,16 +204,11 @@ def _get_aggregated_value(sw_client, asset_id, property_id, resolution, hoursdel
     _, unit = _get_property_uom(sw_client, asset_id, property_id)
     data = _execute_sitewise_query(sw_client, query_statement, maxResults)
     if data and 'event_timestamp' in data:
-
         timestamp = int(data['event_timestamp'][0])
-        #timestamp = int(int(data['event_timestamp'][0])
-        #                * 1.0e-9)  # convert ns to s
         logger.info(f"Timestamp: {timestamp}")
-        datetime_obj = datetime.datetime.utcfromtimestamp(timestamp)
-        eastern_tz = datetime.timezone(datetime.timedelta(
-            hours=hoursdelta))  # Adjust for timezone, if necessary
-        dt_us_eastern = datetime_obj.astimezone(
-            eastern_tz).strftime("%Y-%m-%d %H:%M:%S")
+        eastern_tz = datetime.datetime.fromtimestamp(timestamp,
+                                                     tz=pytz.timezone('US/Eastern'))
+        dt_us_eastern = eastern_tz.strftime("%Y-%m-%d %H:%M:%S")
 
         # Handle both numeric and string values
         if 'average_value' in data and data['average_value'][0] is not None:
@@ -257,7 +249,6 @@ def get_aggregated_value(sw_client, asset_name, property_name, resolution, maxRe
     Raises:
         ValueError: If asset or property does not exist.
     """
-
     try:
         asset_id = _get_asset_id(sw_client, asset_name)
     except ValueError as e:
@@ -304,7 +295,6 @@ def get_latest_value(sw_client, asset_name, property_name, maxResults=1):
     Raises:
         ValueError: If asset or property does not exist.
     """
-
     try:
         asset_id = _get_asset_id(sw_client, asset_name)
     except ValueError as e:
@@ -344,7 +334,6 @@ def list_asset_models(sw_client):
     Returns:
         List of asset model summaries
     """
-
     try:
         paginator = sw_client.get_paginator('list_asset_models')
         model_summaries = []
@@ -386,7 +375,6 @@ def list_all_assets(sw_client):
     Returns:
         list of dict containing model id, model name, asset id, asset name
     """
-
     try:
         assets_by_model = []
         model_summaries = list_asset_models(sw_client)
@@ -413,7 +401,6 @@ def list_properties_for_asset(sw_client, asset_name):
     Returns:
         List of property details (name and ID)
     """
-
     asset_id = _get_asset_id(sw_client, asset_name)
     try:
         asset_details = sw_client.describe_asset(assetId=asset_id)
@@ -443,7 +430,6 @@ def format_response(action_group, api_path, http_method, http_status_code, body,
     Returns:
         dict: The formatted response.
     """
-
     if session_attributes is None:
         session_attributes = {}
     if prompt_session_attributes is None:
@@ -493,7 +479,7 @@ def lambda_handler(event, context):
         elif api_path == "/measurements/{AssetName}/{PropertyName}/aggregate":
             asset_name = _get_named_parameter(event, "AssetName")
             property_name = _get_named_parameter(event, "PropertyName")
-            resolution = _get_named_parameter(event, "resolution")
+            resolution = _get_named_parameter(event, "Resolution")
             try:
                 if resolution not in ['1m', '15m', '1h', '1d']:
                     return format_response(action_group, api_path, http_method, 400, {'error': f"Unsupported resolution for aggregation {resolution}"}, 
