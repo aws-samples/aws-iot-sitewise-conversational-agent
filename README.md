@@ -1,4 +1,4 @@
-# AWS IoT SiteWise conversational agent
+# AWS IoT SiteWise Conversational Agent
 
 The AWS IoT SiteWise conversational agent is an agent-based implementation of the AWS IoT SiteWise API. This implementation leverages Agents for Amazon Bedrock.
 
