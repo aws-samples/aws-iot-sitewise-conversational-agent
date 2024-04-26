@@ -10,13 +10,15 @@ The architecture of the conversational agent is shown below. This repository con
 - An OpenAPI API with methods that invoke the Lambda function
 - Instructions for the Bedrock agent
 
-![AWS architecture](figs/iot-sitewise-bedrock.png)
+<img width="888" alt="architecture-sw-berock" src="https://github.com/aws-samples/aws-iot-sitewise-conversational-agent/assets/36416466/efff6afe-5ae0-420c-9a7b-7c10e039d646">
 
 ## Deployment
 
-> **_AWS IOT SITEWISE PRE-REQUISITES:_** This agent uses the SiteWise SQL engine, which requires that AWS IoT SiteWise and AWS IoT TwinMaker are integrated. Please follow [these steps](https://docs.aws.amazon.com/iot-sitewise/latest/userguide/integrate-tm.html) before deploying the agent.
+### Pre-requisites
 
-> **_AMAZON BEDROCK PRE-REQUISITES:_** Agents for Amazon Bedrock is currently supported only in the us-east-1 and us-west-2 regions, and for Anthropic models. Enable access to the model you intend to use (e.g., `Anthropic Claude v2.0`) in the region where your agent will be deployed by agreeing to the End User License Agreement in the [Amazon Bedrock console](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html).
+1. **_AWS IOT SITEWISE PRE-REQUISITES:_** This agent uses the SiteWise SQL engine, which requires that AWS IoT SiteWise and AWS IoT TwinMaker are integrated. Please follow [these steps](https://docs.aws.amazon.com/iot-sitewise/latest/userguide/integrate-tm.html) before deploying the agent.
+
+2. **_AMAZON BEDROCK PRE-REQUISITES:_** Agents for Amazon Bedrock is currently supported only in the us-east-1 and us-west-2 regions, and for Anthropic models. Enable access to the model you intend to use (e.g., `Anthropic Claude 3 Haiku`) in the region where your agent will be deployed by agreeing to the End User License Agreement in the [Amazon Bedrock console](https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html).
 
 ### Deployment steps
 
@@ -59,9 +61,11 @@ The architecture of the conversational agent is shown below. This repository con
 
 5. _Conversational agent_: To build the agent, go to the Amazon Bedrock console and click on `Agents` under `Orchestration`. Click on `Create Agent`.
 
-    Give your agent a meaningful name (e.g., `industrial-watchdog-agent`). Select a model and its version, e.g., `Anthropic - Claude Instant V1`. For agent instructions, you can paste:
-
-    > You are an agent that helps operators get the most recent measurement available from their wind turbines. You are going to give responses in human-readable form, which means spelling out dates. If no clear instruction is provided, ask for the name of the asset and the name of the property whose measurement we want to retrieve.
+    Give your agent a meaningful name (e.g., `industrial-watchdog-agent`). Select a model and its version, e.g., `Anthropic - Claude 3 Haiku`. For agent instructions, you can paste:
+    
+    ```text
+    You are an agent that helps operators get the most recent measurement available from their wind turbines. You are going to give responses in human-readable form, which means spelling out dates. If no clear instruction is provided, ask for the name of the asset and the name of the property whose measurement we want to retrieve. Do not assume that the name given by the user is the official name of the asset or property to be queried. Always run a query to get the official name of the asset and property, and then query the measurement or aggregate requested.
+    ```
 
     Under `Action Groups`, select the Lambda function you created in step 3, and browse or enter the S3 URL that points to the API schema from step 2.
 
@@ -70,13 +74,15 @@ The architecture of the conversational agent is shown below. This repository con
 6. _Testing_: Ask questions about the current status of your assets. If you used the SiteWise demo to deploy assets, you can ask:
 
 - What assets are available?
-- What is the latest value of RotationsPerMinute in turbine 1?
+- What is the latest RPM value for turbine 1?
 - What is the average RotationsPerMinute of Demo Turbine Asset 1 aggregated by hour?
 
 
     > Note that even if you ask for an asset or a property not using the exact property or asset name stored in SiteWise, it can still reason and retrieve the value.
 
     ![Sample questions](figs/sample-questions.png)
+  ![Sample-question-2](https://github.com/aws-samples/aws-iot-sitewise-conversational-agent/assets/36416466/cca3b7d2-7c8a-41dd-ab8c-709944f9a465)
+
 
 ## Security
 
