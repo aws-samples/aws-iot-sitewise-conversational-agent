@@ -2,6 +2,9 @@
 
 This folder contains a chatbot application that interacts with the Agent built in root directory. This chatbot is built using Streamlit and Python.
 
+![image](https://github.com/aws-samples/aws-iot-sitewise-conversational-agent/assets/36416466/f0e0a4fe-4f37-4cf1-9a89-634a1f84635e)
+
+
 ## Prerequisites
 
 Before running the chatbot, ensure that you have the following:
