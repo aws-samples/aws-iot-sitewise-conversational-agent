@@ -166,3 +166,5 @@ samconfig.toml
 # testing folder
 .testing/
 .DS_Store
+.ipynb
+session.json
