@@ -32,6 +32,7 @@ Resources:
               - iotsitewise:ListAssetProperties
               - iotsitewise:ListAssetModels
               - iotsitewise:DescribeAssetCompositeModel
+              - iotsitewise:GetAssetPropertyAggregates
             Resource: "*"
   
   SiteWiseActionFunctionResourcePolicy:
