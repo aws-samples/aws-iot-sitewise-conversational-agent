@@ -15,7 +15,7 @@ AGENT_ID = os.getenv("AGENT_ID")
 sample_questions = [
     "What assets are available?",
     "What is the current RPM value for turbine 2?",
-    "What is the average RPM value for turbine 2, aggregated by hour?",
+    "What is the average RPM value for turbine 1 in the last hour?",
     "Which turbine has the highest RPM value and what is it?"
 ]
 

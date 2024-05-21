@@ -162,7 +162,7 @@ def _get_latest_value(sw_client, asset_id, property_id, maxResults=1):
         timestamp = int(int(data['event_timestamp'][0])
                         * 1.0e-9)  # convert ns to s
         logger.info(f"Timestamp: {timestamp}")
-        dt = datetime.datetime.fromtimestamp(timestamp)
+        dt = datetime.fromtimestamp(timestamp)
         dt_str = dt.strftime("%Y-%m-%d %H:%M:%S")
 
         # Handle both numeric and string values
