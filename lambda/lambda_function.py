@@ -2,9 +2,8 @@ import json
 import boto3
 import logging
 import datetime
-import time
 import os
-import pytz
+from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -151,10 +150,9 @@ def _get_latest_value(sw_client, asset_id, property_id, maxResults=1):
         sw_client: IoT SiteWise client
         asset_id: asset id
         property_id: property id
-        hoursdelta: difference in hours with respect to UTC time
         maxResults: max number of query results to return
     Returns:
-        UNIX timestamp, latest value, unit
+        Timestamp, latest value, unit
     """
     query_statement = f"SELECT asset_id, property_id, event_timestamp, double_value, string_value FROM latest_value_time_series WHERE asset_id = '{
         asset_id}' AND property_id = '{property_id}'"
@@ -164,10 +162,8 @@ def _get_latest_value(sw_client, asset_id, property_id, maxResults=1):
         timestamp = int(int(data['event_timestamp'][0])
                         * 1.0e-9)  # convert ns to s
         logger.info(f"Timestamp: {timestamp}")
-        # Adjust for timezone, if necessary
-        eastern_tz = datetime.datetime.fromtimestamp(timestamp,
-                                                     tz=pytz.timezone('US/Eastern'))
-        dt_us_eastern = eastern_tz.strftime("%Y-%m-%d %H:%M:%S")
+        dt = datetime.datetime.fromtimestamp(timestamp)
+        dt_str = dt.strftime("%Y-%m-%d %H:%M:%S")
 
         # Handle both numeric and string values
         if 'double_value' in data and data['double_value'][0] is not None:
@@ -178,63 +174,80 @@ def _get_latest_value(sw_client, asset_id, property_id, maxResults=1):
             measurement = 'N/A'  # Or some placeholder if no value is available
 
         logger.info(f"Latest measurement was {
-                    measurement} {unit} at {dt_us_eastern}")
-        return dt_us_eastern, measurement, unit
+                    measurement} {unit} at {dt_str}")
+        return dt_str, measurement, unit
     else:
         raise ValueError(f"Latest value for property {
                          property_id} on asset {asset_id} not found")
 
 
-def _get_aggregated_value(sw_client, asset_id, property_id, resolution, maxResults=1):
-    """
-    Execute a SQL query to get the aggregated values of <property_id> in <asset_id>
-    Args:
-        sw_client: IoT SiteWise client
-        asset_id: asset id
-        property_id: property id
-        hoursdelta: difference in hours with respect to UTC time
-        maxResults: max number of query results to return
-    Returns:
-        UNIX timestamp, unit, avg value, max value, min value
-    """
-    timestamp_2_days = int(time.time()) - 48*60*60
-    resolution_val = resolution
-    query_statement = f"SELECT asset_id, property_id, event_timestamp, average_value, maximum_value, minimum_value FROM precomputed_aggregates WHERE asset_id = '{
-        asset_id}' AND property_id = '{property_id}' AND resolution = '{resolution_val}' AND event_timestamp > {timestamp_2_days}"
-    _, unit = _get_property_uom(sw_client, asset_id, property_id)
-    data = _execute_sitewise_query(sw_client, query_statement, maxResults)
-    if data and 'event_timestamp' in data:
-        timestamp = int(data['event_timestamp'][0])
-        logger.info(f"Timestamp: {timestamp}")
-        eastern_tz = datetime.datetime.fromtimestamp(timestamp,
-                                                     tz=pytz.timezone('US/Eastern'))
-        dt_us_eastern = eastern_tz.strftime("%Y-%m-%d %H:%M:%S")
+def get_asset_property_aggregates(asset_id, property_id, start_time, end_time, resolution, aggregate_types, qualities=None, next_token=None, max_results=100):
+    sitewise = boto3.client('iotsitewise')
 
-        # Handle both numeric and string values
-        if 'average_value' in data and data['average_value'][0] is not None:
-            avg_measurement = round(float(data['average_value'][0]), 2)
-        else:
-            avg_measurement = 'N/A'  # Or some placeholder if no value is available
-        if 'maximum_value' in data and data['maximum_value'][0] is not None:
-            max_measurement = round(float(data['maximum_value'][0]), 2)
-        else:
-            max_measurement = 'N/A'  # Or some placeholder if no value is available
-        if 'minimum_value' in data and data['minimum_value'][0] is not None:
-            min_measurement = round(float(data['minimum_value'][0]), 2)
-        else:
-            min_measurement = 'N/A'  # Or some placeholder if no value is available
+    start_time_seconds = int(start_time.timestamp())
+    end_time_seconds = int(end_time.timestamp())
 
-        logger.info(f"Avg measurement was {
-                    avg_measurement} {unit} at {dt_us_eastern}")
-        logger.info(f"Max measurement was {
-                    max_measurement} {unit} at {dt_us_eastern}")
-        logger.info(f"Min measurement was {
-                    min_measurement} {unit} at {dt_us_eastern}")
+    params = {
+        'assetId': asset_id,
+        'propertyId': property_id,
+        'startDate': start_time_seconds,
+        'endDate': end_time_seconds,
+        'resolution': resolution,
+        'aggregateTypes': aggregate_types,
+        'timeOrdering': 'ASCENDING',
+        'maxResults': max_results
+    }
 
-        return dt_us_eastern, unit, avg_measurement, max_measurement, min_measurement
-    else:
-        raise ValueError(f"Avg, max and min values for property {
-                         property_id} on asset {asset_id} not found")
+    if qualities:
+        params['qualities'] = qualities
+    if next_token:
+        params['nextToken'] = next_token
+
+    try:
+        response = sitewise.get_asset_property_aggregates(**params)
+        aggregates = response['aggregatedValues']
+
+        if 'nextToken' in response:
+            aggregates.extend(get_asset_property_aggregates(asset_id, property_id, start_time, end_time, resolution, aggregate_types, qualities, response['nextToken'], max_results))
+
+        return aggregates
+    except Exception as e:
+        print(f"Error retrieving aggregated data: {str(e)}")
+        return []
+
+def get_asset_property_aggregates(asset_id, property_id, start_time, end_time, resolution, aggregate_types, qualities=None, next_token=None, max_results=100):
+    sitewise = boto3.client('iotsitewise')
+
+    start_time_seconds = int(start_time.timestamp())
+    end_time_seconds = int(end_time.timestamp())
+
+    params = {
+        'assetId': asset_id,
+        'propertyId': property_id,
+        'startDate': start_time_seconds,
+        'endDate': end_time_seconds,
+        'resolution': resolution,
+        'aggregateTypes': aggregate_types,
+        'timeOrdering': 'ASCENDING',
+        'maxResults': max_results
+    }
+
+    if qualities:
+        params['qualities'] = qualities
+    if next_token:
+        params['nextToken'] = next_token
+
+    try:
+        response = sitewise.get_asset_property_aggregates(**params)
+        aggregates = response['aggregatedValues']
+
+        if 'nextToken' in response:
+            aggregates.extend(get_asset_property_aggregates(asset_id, property_id, start_time, end_time, resolution, aggregate_types, qualities, response['nextToken'], max_results))
+
+        return aggregates
+    except Exception as e:
+        print(f"Error retrieving aggregated data: {str(e)}")
+        return []
 
 
 def get_aggregated_value(sw_client, asset_name, property_name, resolution):
@@ -244,6 +257,7 @@ def get_aggregated_value(sw_client, asset_name, property_name, resolution):
         sw_client: IoT SiteWise client
         asset_name: asset name
         property_name: property name
+        resolution: resolution for aggregation
     Returns:
         asset id, property id, avg value, max value, min value
     Raises:
@@ -264,24 +278,39 @@ def get_aggregated_value(sw_client, asset_name, property_name, resolution):
                          asset_name}'") from e
 
     try:
-        event_timestamp, unit, avg_value, max_value, min_value = _get_aggregated_value(
-            sw_client, asset_id, property_id, resolution)
-        return {
-            "assetId": asset_id,
-            "propertyId": property_id,
-            "eventTimestamp": event_timestamp,
-            "avgValue": avg_value,
-            "maxValue": max_value,
-            "minValue": min_value,
-            "units": unit,
-            "resolution": resolution
-        }
-    except ValueError as e:
+        start_time = datetime.now(timezone.utc) - timedelta(days=2)
+        end_time = datetime.now(timezone.utc)
+        aggregate_types = ['AVERAGE', 'MINIMUM', 'MAXIMUM']
+
+        aggregated_data = get_asset_property_aggregates(asset_id, property_id, start_time, end_time, resolution, aggregate_types)
+
+        if aggregated_data:
+            latest_data = aggregated_data[-1]
+            event_timestamp = latest_data['timestamp']
+            dt_str = event_timestamp.strftime("%Y-%m-%d %H:%M:%S")
+            avg_value = latest_data['value']['average']
+            max_value = latest_data['value']['maximum']
+            min_value = latest_data['value']['minimum']
+            unit = ''  # Add logic to get the unit if available
+
+            return {
+                "assetId": asset_id,
+                "propertyId": property_id,
+                "eventTimestamp": dt_str,
+                "avgValue": avg_value,
+                "maxValue": max_value,
+                "minValue": min_value,
+                "units": unit,
+                "resolution": resolution
+            }
+        else:
+            raise ValueError(f"No aggregated data found for property '{property_name}' on asset '{asset_name}'")
+
+    except Exception as e:
         logger.error(f"Error retrieving aggregated value for property '{
                      property_name}' on asset '{asset_name}': {e}")
         raise ValueError(f"Error retrieving aggregated value for property '{
                          property_name}' on asset '{asset_name}'") from e
-
 
 def get_latest_value(sw_client, asset_name, property_name, maxResults=1):
     """
@@ -290,6 +319,7 @@ def get_latest_value(sw_client, asset_name, property_name, maxResults=1):
         sw_client: IoT SiteWise client
         asset_name: asset name
         property_name: property name
+        maxResults: max number of query results to return
     Returns:
         asset id, property id, latest value
     Raises:
@@ -311,7 +341,7 @@ def get_latest_value(sw_client, asset_name, property_name, maxResults=1):
 
     try:
         event_timestamp, latest_value, unit = _get_latest_value(
-            sw_client, asset_id, property_id)
+            sw_client, asset_id, property_id, maxResults)
         return {
             "assetId": asset_id,
             "propertyId": property_id,
@@ -355,7 +385,6 @@ def list_assets_for_model(sw_client, model_id):
     Returns:
         List of asset summaries
     """
-
     try:
         paginator = sw_client.get_paginator('list_assets')
         asset_summaries = []
